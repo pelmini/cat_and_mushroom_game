@@ -26,6 +26,8 @@ demos/labs, please look at the labXX branches.  Current ones include:
 * Lab 3: Pattern, name, and attribute tables
 * Lab 4: Drawing sprites
 * Lab 5: Animating sprites
+* Lab 6: APU init and playing sound
+* Lab 7: Reading the controllers
 
 To build and run:
 ```

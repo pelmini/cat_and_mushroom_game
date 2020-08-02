@@ -1,32 +1,42 @@
-; Audio Processing Unit (APU) Basics
+; NES Controller Basics
 ;
-; This lab introduces some very basic code for initializing the RP2A03 APU
-; (used by the NTSC NES) and generating a single sound.  Again, this is done
-; not with a focus on efficacy or efficiency but instead for readability and
-; documentation focused on explaining the roles of various registers.
+; This lab introduces some incredibly basic code for reading the controller
+; state.  This will work in the most basic scenario, which is for reading a
+; standard NES dpad controller, which most emulators will support out of the
+; box.
 ;
-; First off, there's the initialization of the registers to clear, known
-; states.  This is done in the main routine prior to turning on the NMI.
-; recall from previous materials that the NMI provides a heartbeat for the
-; video processing and display, and as such, it's better to do all
-; initialization prior to turning on the NMI.  Since we're going to be playing
-; only one (pretty ugly) sound, we also go ahead and configure that in the
-; main intitialization code, too.
+; The controller interface works as follows:
+; * Writing to the controller register with the strobe bit active causes the
+;   controller's latches to run in "parallel" mode.  Any reads from the
+;   register at this time will give real-time updates on the state of the first
+;   button of the controller (for a dpad, that's A).
+; * A subsequent write to the register with the strobe bit inactive latches in
+;   the last state of the buttons and a shift register will let you read them
+;   out, one button per read.  Different controllers will report on different
+;   bits in the read, but the standard dpad will always report on bit 0.
 ;
-; Essentially, making a sound through the synthesizers works in a common way
-; across all of them: you write in paramters describing the period (the inverse
-; of the frequency) and the volume.  After that, you write a value into the
-; length counter bits which describes how many ticks of the frame counter
-; (running at 240 Hz on the 4-frame config used here) the sound should last.
+; Want to know more about controller reading?  See here:
 ;
-; Muting a channel can be performed through the DMC_LEN_CNT_CTRL_STA register.
-; The bottom 5 bits enable/disable the length counters for the synthesizers,
-; thus effectively muting them.
+; * http://wiki.nesdev.com/w/index.php/Standard_controller
+; * http://wiki.nesdev.com/w/index.php/Controller_reading
+; * http://wiki.nesdev.com/w/index.php/Controller_reading_code
 ;
-; There's enough in this lab to get your feet wet on the APU, but it doesn't
-; cover more advanced topics like sweeps, envelopes, samples, or composing
-; music.
-
+; Really, that's it.  Just for this lab, the R button now controls the walk
+; animation, so the little man now runs only when you tell him to.  To achieve
+; this, I simply inhibit the walk cycle animation unless the button has been
+; pressed.  I sample constantly in the main loop and set a flag, which the
+; NMI vector checks before performing any animations.
+;
+; Believe it or not, at this point, we know enough to make bigger and better
+; applications.  But this code here is horribly structured for doing so.  So,
+; in my next lab, I'm going to clean this up, reorganize it, and try to make
+; a more workable "engine" on which to put advanced topics.
+;
+; Tiny note: I changed the ZEROPAGE to DATA here merely for correctness' sake.
+; The ZEROPAGE should always contain unitialized data, but some of the data
+; was initialized and this gives a linker warning.
+;
+; Thanks again for reading this far and taking this NES 6502 journey with me!
 
 .define SPRITE_PAGE  $0200
 
@@ -87,6 +97,13 @@
 ; Frame counter mode (4 or 5 frame), frame counter interrupt enable/disable
 .define FRAME_CNT_MODE_INT $4017
 
+; Controller 1
+.define CONTROLLER_1_PORT $4016
+.define CONTROLLER_2_PORT $4017
+.define CONTROLLER_STROBE $01
+.define CONTROLLER_LATCH  $00
+.define CONTROLLER_D0_BIT $01
+
 ; Mandatory iNES header.
 .segment "HEADER"
 
@@ -100,7 +117,7 @@
 
 ; "zero page" RAM
 ; This is where we're storing our mutable state.
-.segment "ZEROPAGE"
+.segment "DATA"
 current_frame:
   .byte 0
 sprite_x:
@@ -109,7 +126,8 @@ sprite_y:
   .byte $7F
 frame_count:
   .byte 0
-
+run:
+  .byte 0
 
 
 ; code ROM segment
@@ -210,6 +228,28 @@ zero_oam:
   sta PPUCTRL
 
 forever:
+; read the controller state
+  lda #CONTROLLER_STROBE
+  sta CONTROLLER_1_PORT
+  lda #CONTROLLER_LATCH
+  sta CONTROLLER_1_PORT
+; The controller state is latched, the bits will report in in this
+; order on subsequent reads: A, B, Select, Start, U, D, L, R
+;
+; We only care about the 0 bit because that's where D0, the standard
+; controller, reports in
+  lda CONTROLLER_1_PORT ; A
+  lda CONTROLLER_1_PORT ; B
+  lda CONTROLLER_1_PORT ; Select
+  lda CONTROLLER_1_PORT ; Start
+  lda CONTROLLER_1_PORT ; U
+  lda CONTROLLER_1_PORT ; D
+  lda CONTROLLER_1_PORT ; L
+  lda CONTROLLER_1_PORT ; R
+  and #CONTROLLER_D0_BIT
+; A value of 0 means the button is pressed
+  sta run
+
   jmp forever
 
 nmi:
@@ -229,6 +269,11 @@ nmi:
   bne done
   lda #0
   sta frame_count
+
+; If run is 0, don't do anything
+  lda run
+  cmp #0
+  beq done
 
 ; We counted 15 NMIs, so let's update the animation frame and
 ; make the little character walk
