@@ -30,6 +30,7 @@
 ; Note that the annyoing "hello world" sound is now gone.  The graphics show
 ; that everything is working.
 
+.define PPUCTRL      $2000
 .define PPUMASK      $2001
 .define PPUSTATUS    $2002
 .define PPUADDR      $2006
@@ -48,6 +49,25 @@ nametable_ptr_lo:
 .byte $00
 nametable_ptr_hi:
 .byte $00
+frame_counter:
+.byte $00
+
+; bgpalette was moved to ZEROPAGE so we can manipulate it
+; in RAM.  It was previously part of ROM and thus immutable
+
+bgpalette:
+p0_c0:
+  .byte $00
+p0_c1:
+  .byte $00
+p0_c2:
+  .byte $00
+p0_c3:
+  .byte $00 ; palette 0
+  .byte $00, $00, $00, $00 ; palette 1
+  .byte $00, $00, $00, $00 ; palette 2
+  .byte $00, $00, $00, $00 ; palette 3
+
 
 ; Mandatory iNES header.
 .segment "HEADER"
@@ -83,6 +103,19 @@ vwait2:
   ; it's a neat little thing to mention here
 
   bit PPUSTATUS
+
+  ; The palettes are now being stored in ZEROPAGE RAM so that
+  ; they can be manipulated at runtime.  That means they need
+  ; to be loaded with default values.  This loads palette 0
+  ; defaults only because we don't use palette 1-3 yet.
+  lda #$0F
+  sta p0_c0
+  lda #$11
+  sta p0_c1
+  lda #$2a
+  sta p0_c2
+  lda #$25
+  sta p0_c3
 
   ; load the background palette
   lda #BGPALETTE_HI
@@ -153,24 +186,59 @@ attrloop:
   lda #$1e
   sta PPUMASK
 
+; generate NMI
+  lda #$80
+  sta PPUCTRL
+
 forever:
   jmp forever
 
 nmi:
+  dec frame_counter
+  bmi rotate_palette
+  rti
+
+rotate_palette:
+  ; reset the frame counter
+  lda #30
+  sta frame_counter
+
+  ; load palette color 1
+  lda p0_c1
+  ; transfer to X
+  tax
+  ; load palette color 2
+  lda p0_c2
+  ; store palette color 2 to color 1
+  sta p0_c1
+  ; load palette color 3
+  lda p0_c3
+  ; store palette color 3 to color 2
+  sta p0_c2
+  ; transfer X to A
+  txa
+  ; store in palette color 3
+  sta p0_c3
+
+  ; Now reload the palettes
+
+  ; load the background palette
+  lda #BGPALETTE_HI
+  sta PPUADDR
+  lda #BGPALETTE_LO
+  sta PPUADDR
+
+  ; prep the loop
+  ldx #0
+rot_paletteloop:
+  lda bgpalette, X ; load from the bgpalette array
+  sta PPUDATA      ; store in PPUDATA, PPU will auto-increment
+  inx              ; increment the X (index) register
+  cpx #16
+  bne rot_paletteloop  ; run the loop until X=16 (size of the palettes)
+
+
   rti ; Return from the NMI (NTSC refresh interrupt)
-
-
-; The background colors are, in order:
-; $0F: black
-; $15: red
-; $22: blue
-; $20: white
-
-bgpalette:
-  .byte $0F, $11, $2a, $25 ; palette 0
-  .byte $0F, $15, $22, $20 ; palette 1
-  .byte $0F, $15, $22, $20 ; palette 2
-  .byte $0F, $15, $22, $20 ; palette 3
 
 
 ; vectors declaration
