@@ -56,17 +56,38 @@ frame_counter:
 ; in RAM.  It was previously part of ROM and thus immutable
 
 bgpalette:
-p0_c0:
+palette0_color0:
   .byte $00
-p0_c1:
+palette0_color1:
   .byte $00
-p0_c2:
+palette0_color2:
   .byte $00
-p0_c3:
+palette0_color3:
   .byte $00 ; palette 0
-  .byte $00, $00, $00, $00 ; palette 1
-  .byte $00, $00, $00, $00 ; palette 2
-  .byte $00, $00, $00, $00 ; palette 3
+palette1_color0:
+  .byte $00
+palette1_color1:
+  .byte $00
+palette1_color2:
+  .byte $00
+palette1_color3:
+  .byte $00
+palette2_color0:
+  .byte $00
+palette2_color1:
+  .byte $00
+palette2_color2:
+  .byte $00
+palette2_color3:
+  .byte $00
+palette3_color0:
+  .byte $00
+palette3_color1:
+  .byte $00
+palette3_color2:
+  .byte $00
+palette3_color3:
+  .byte $00
 
 
 ; Mandatory iNES header.
@@ -108,14 +129,14 @@ vwait2:
   ; they can be manipulated at runtime.  That means they need
   ; to be loaded with default values.  This loads palette 0
   ; defaults only because we don't use palette 1-3 yet.
-  lda #$0F
-  sta p0_c0
-  lda #$11
-  sta p0_c1
-  lda #$2a
-  sta p0_c2
-  lda #$25
-  sta p0_c3
+  lda #$21
+  sta palette0_color0
+  lda #$1f
+  sta palette0_color1
+  lda #$16
+  sta palette0_color2
+  lda #$20
+  sta palette0_color3
 
   ; load the background palette
   lda #BGPALETTE_HI
@@ -172,12 +193,13 @@ nt_finished:
   sta PPUADDR
   lda #ATTRTABLE_0_LO
   sta PPUADDR
-  ldx #64 ; 64 tiles in the attribute table
-  lda #0
+  ldx #0 ; 64 tiles in the attribute table
 
 attrloop:
+  lda attribute, X ; loads attribute[x] into accumulator 
   sta PPUDATA
-  dex
+  inx ; incremnet x (by one)
+  cpx #64 ; comparing x to 64
   bne attrloop
 
 ; Enable background and sprite rendering.  This is suuuuuper important to
@@ -186,39 +208,51 @@ attrloop:
   lda #$1e
   sta PPUMASK
 
-; generate NMI
+; generate NMI - Non-maskable interrupt
+; Set at 80 to generate NMI
+; 7th bit is flipped, which is technically 8 in hex (1000 0000)
+; http://wiki.nesdev.com/w/index.php/PPU_registers#PPUCTRL  
   lda #$80
   sta PPUCTRL
 
 forever:
+; infinite loop when there is nothing to compute 
+; Needed for flow control, until the next nmi is ready
+; will recieve signal from ppu to get out of loop 
   jmp forever
 
 nmi:
+  rti ; JUST DID TO PUT PAUSE ON ROTATE PALETTE UNTIL SHROOM HAS BEEN MADE!!!!!!!!
+  ; dec - reducing the value by one 
   dec frame_counter
+  ; bmi - branch if minus 
+  ; if frame counter is less than zero then do rotate_palette
   bmi rotate_palette
+  ; return from interrupt - end rotate code and go back to idle loop
   rti
 
 rotate_palette:
   ; reset the frame counter
-  lda #30
+  lda #40
   sta frame_counter
 
   ; load palette color 1
-  lda p0_c1
+  lda palette0_color1
   ; transfer to X
+  ; X acts as a holder
   tax
   ; load palette color 2
-  lda p0_c2
+  lda palette0_color2
   ; store palette color 2 to color 1
-  sta p0_c1
+  sta palette0_color1
   ; load palette color 3
-  lda p0_c3
+  lda palette0_color3
   ; store palette color 3 to color 2
-  sta p0_c2
+  sta palette0_color2
   ; transfer X to A
   txa
   ; store in palette color 3
-  sta p0_c3
+  sta palette0_color3
 
   ; Now reload the palettes
 
@@ -266,8 +300,8 @@ background:
 .byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$28,$25,$2C,$2C,$2F,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 .byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$37,$2F,$32,$2C,$24,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 .byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-.byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$6E,$6F,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-.byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$7E,$7F,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+.byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$86,$87,$88,$89,$8A,$8B,$8C,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+.byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$96,$97,$98,$99,$9A,$9B,$9C,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 .byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 .byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 .byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
@@ -284,5 +318,17 @@ background:
 .byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 .byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 .byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+; Each byte of attribute table covers four quadrants, pack four quadrants into a singe byte 
+; EX. 00(bottom right) 00(bottom left) 00(top right) 00(top left)
+; EX 1. 01 10 00 11 -> 0110 0011 -> $63   
+attribute:
+.byte $63,$63,$63,$63,$63,$63,$63
+.byte $63,$63,$63,$63,$63,$63,$63
+.byte $63,$63,$63,$63,$63,$63,$63
+.byte $63,$63,$63,$63,$63,$63,$63
+.byte $63,$63,$63,$63,$63,$63,$63
+.byte $63,$63,$63,$63,$63,$63,$63
+.byte $63,$63,$63,$63,$63,$63,$63
+.byte $63,$63,$63,$63,$63,$63,$63
 .segment "CHARS"
-.incbin "generitiles.pat"
+.incbin "cat_sheet.sav"
