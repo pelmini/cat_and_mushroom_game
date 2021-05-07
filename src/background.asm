@@ -58,45 +58,6 @@ nametable_ptr_hi:
 frame_counter:
 .byte $00
 
-; bgpalette was moved to ZEROPAGE so we can manipulate it
-; in RAM.  It was previously part of ROM and thus immutable
-
-bgpalette:
-universal_background_color:
-  .byte $00
-palette0_color1:
-  .byte $00
-palette0_color2:
-  .byte $00
-palette0_color3:
-  .byte $00 ; palette 0
-unused_byte_1:
-  .byte $00
-palette1_color1:
-  .byte $00
-palette1_color2:
-  .byte $00
-palette1_color3:
-  .byte $00
-unused_byte_2:  
-  .byte $00
-palette2_color1:
-  .byte $00
-palette2_color2:
-  .byte $00
-palette2_color3:
-  .byte $00
-unused_byte_3:
-  .byte $00
-palette3_color1:
-  .byte $00
-palette3_color2:
-  .byte $00
-palette3_color3:
-  .byte $00
-
-
-; Mandatory iNES header.
 .segment "HEADER"
 
 .byte "NES", $1A ; "NES" magic value
@@ -131,35 +92,8 @@ vwait2:
 
   bit PPUSTATUS
 
-  ; The palettes are now being stored in ZEROPAGE RAM so that
-  ; they can be manipulated at runtime.  That means they need
-  ; to be loaded with default values.  This loads palette 0
-  ; defaults only because we don't use palette 1-3 yet.
-  lda #$1f
-  sta universal_background_color
-  ; color pallete of mushroom hat cat + og cat
-  lda #$20
-  sta palette0_color1
-  lda #$1f
-  sta palette0_color2
-  lda #$16
-  sta palette0_color3
-  ; color pallete of froggy cat 
-  lda #$20
-  sta palette1_color1
-  lda #$1f
-  sta palette1_color2
-  lda #$19
-  sta palette1_color3  
-  ; color pallete of background + road
-  lda #$38
-  sta palette2_color1
-  lda #$00
-  sta palette2_color2
-  lda #$1a
-  sta palette2_color3
 
-  ; load the background palette
+  ; load all the palettes
   lda #BGPALETTE_HI
   sta PPUADDR
   lda #BGPALETTE_LO
@@ -172,7 +106,7 @@ paletteloop:
   lda bgpalette, X ; load from the bgpalette array
   sta PPUDATA      ; store in PPUDATA, PPU will auto-increment
   inx              ; increment the X (index) register
-  cpx #16
+  cpx #32
   bne paletteloop  ; run the loop until X=16 (size of the palettes)
 
 ; move PPUADDR over to nametable 0. 
@@ -288,53 +222,20 @@ nmi:
   rti
 
 rotate_palette:
-  ; reset the frame counter
-  lda #40
-  sta frame_counter
-
-  ; load palette color 1
-  lda palette0_color1
-  ; transfer to X
-  ; X acts as a holder
-  tax
-  ; load palette color 2
-  lda palette0_color2
-  ; store palette color 2 to color 1
-  sta palette0_color1
-  ; load palette color 3
-  lda palette0_color3
-  ; store palette color 3 to color 2
-  sta palette0_color2
-  ; transfer X to A
-  txa
-  ; store in palette color 3
-  sta palette0_color3
-
-  ; Now reload the palettes
-
-  ; load the background palette
-  lda #BGPALETTE_HI
-  sta PPUADDR
-  lda #BGPALETTE_LO
-  sta PPUADDR
-
-  ; prep the loop
-  ldx #0
-rot_paletteloop:
-  lda bgpalette, X ; load from the bgpalette array
-  sta PPUDATA      ; store in PPUDATA, PPU will auto-increment
-  inx              ; increment the X (index) register
-  cpx #16
-  bne rot_paletteloop  ; run the loop until X=16 (size of the palettes)
-
-
   rti ; Return from the NMI (NTSC refresh interrupt)
 
+bgpalette:
+  .byte $1f, $20, $1f, $16 ; palette 0, first byte is universal background
+  .byte $1f, $20, $1f, $19 ; palette 1, first byte is not used
+  .byte $1f, $38, $00, $1a ; palette 2, first byte is not used
+  .byte $1f, $20, $1f, $16 ; palette 3, first byte is not used
+  
 spritepalette:
-  .byte $0F, $20, $1f, $16 ; palette 0
-  .byte $0F, $07, $19, $20 ; palette 1
-  .byte $0F, $07, $19, $20 ; palette 2
-  .byte $0F, $07, $19, $20 ; palette 3
+  .byte $1F, $20, $1f, $16 ; palette 0, first byte is not used
+  .byte $1F, $07, $19, $20 ; palette 1, first byte is not used
+  .byte $1F, $07, $19, $20 ; palette 2, first byte is not used
+  .byte $1F, $07, $19, $20 ; palette 3, first byte is not used
+
 
 ; vectors declaration
 .segment "VECTORS"
