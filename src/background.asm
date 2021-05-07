@@ -30,12 +30,18 @@
 ; Note that the annyoing "hello world" sound is now gone.  The graphics show
 ; that everything is working.
 
+.define SPRITE_PAGE  $0200
+
 .define PPUCTRL      $2000
 .define PPUMASK      $2001
 .define PPUSTATUS    $2002
 .define PPUADDR      $2006
 .define PPUSCROLL    $2005
 .define PPUDATA      $2007
+
+.define OAM_DMA      $4014
+
+.define OAM_PAGE     2
 
 .define NAMETABLE_0_HI $20
 .define NAMETABLE_0_LO $00
@@ -217,6 +223,41 @@ attrloop:
   cpx #64 ; comparing x to 64
   bne attrloop
 
+; zero out the OAM DMA shadow page
+  ldx #$FF
+  lda $0
+zero_oam:
+  sta SPRITE_PAGE, X
+  dex
+  bne zero_oam
+
+; refresh our index register...we're going to make heavy use of it
+; now...
+  ldx #0
+
+; head
+  lda #$7F             ; Y coordinate
+  sta SPRITE_PAGE, X
+  inx
+  lda #$36             ; Pattern bank 0, tile A0 (A1 is bottom)
+  sta SPRITE_PAGE, X
+  inx
+  lda #$00             ; No flipping, in front of background, palette 0  
+  sta SPRITE_PAGE, X
+  inx
+  lda #$7F             ; X coordinate
+  sta SPRITE_PAGE, X
+  inx
+  lda #$7F             ; Y coordinate
+  sta SPRITE_PAGE, X
+  inx
+
+; OAM DMA must always be a transfer from address XX00-XXFF, so we write
+; the value of XX (in this case, 2) to OAM_DMA ($4014) to trigger the
+; transfer
+  lda #OAM_PAGE
+  sta OAM_DMA 
+
 ; Enable background and sprite rendering.  This is suuuuuper important to
 ; remember.  I didn't remember to put this in and probably blew a whole day
 ; trying to figure out why my emulator hated me.
@@ -289,6 +330,11 @@ rot_paletteloop:
 
   rti ; Return from the NMI (NTSC refresh interrupt)
 
+spritepalette:
+  .byte $0F, $20, $1f, $16 ; palette 0
+  .byte $0F, $07, $19, $20 ; palette 1
+  .byte $0F, $07, $19, $20 ; palette 2
+  .byte $0F, $07, $19, $20 ; palette 3
 
 ; vectors declaration
 .segment "VECTORS"
@@ -301,27 +347,26 @@ rot_paletteloop:
 ; Note the use of .incbin so I can just import a binary file.  Neato!
 .segment "RODATA"
 background:
-                   ;                ;               ;              ;               ;               ;               ;                ; 
 .byte $8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$68,$A1,$A0,$69,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D
 .byte $9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$78,$B0,$B1,$79,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D
 .byte $8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$68,$A1,$A0,$69,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D
-.byte $9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$78,$B0,$B1,$79,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D ;
+.byte $9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$78,$B0,$B1,$79,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D 
 .byte $8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$68,$A1,$A0,$69,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D
 .byte $9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$78,$B0,$B1,$79,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D
 .byte $8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$68,$A1,$A0,$69,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D
-.byte $9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$78,$B0,$B1,$79,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D ;
+.byte $9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$78,$B0,$B1,$79,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D 
 .byte $8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$68,$A1,$A0,$69,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D
 .byte $9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$78,$B0,$B1,$79,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D
 .byte $8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$68,$66,$67,$66,$67,$66,$A1,$A0,$67,$66,$67,$66,$67,$66,$67,$66,$67,$66,$67,$66,$67
-.byte $9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$78,$76,$77,$76,$77,$76,$B0,$B1,$77,$76,$77,$76,$77,$76,$77,$76,$77,$76,$77,$76,$77 ;
+.byte $9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$78,$76,$77,$76,$77,$76,$B0,$B1,$77,$76,$77,$76,$77,$76,$77,$76,$77,$76,$77,$76,$77 
 .byte $8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$68,$A0,$A1,$A0,$A1,$A0,$A1,$A0,$A1,$A0,$A1,$A0,$A1,$A0,$A1,$A0,$A1,$A0,$A1,$A0,$A1
 .byte $9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$78,$B0,$B1,$B0,$B1,$B0,$B1,$B0,$B1,$B0,$B1,$B0,$B1,$B0,$B1,$B0,$B1,$B0,$B1,$B0,$B1
 .byte $8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$68,$A0,$A1,$6A,$6B,$6A,$6B,$6A,$6B,$6A,$6B,$A0,$A1,$6A,$6B,$6A,$6B,$6A,$6B,$6A,$6B
-.byte $9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$78,$B0,$B1,$7A,$7B,$7A,$7B,$7A,$7B,$7A,$7B,$B0,$B1,$7A,$7B,$7A,$7B,$7A,$7B,$7A,$7B ;
+.byte $9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$78,$B0,$B1,$7A,$7B,$7A,$7B,$7A,$7B,$7A,$7B,$B0,$B1,$7A,$7B,$7A,$7B,$7A,$7B,$7A,$7B 
 .byte $8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$68,$A0,$A1,$69,$8C,$8D,$8C,$8D,$8C,$8D,$68,$A0,$A1,$69,$8C,$8D,$8C,$8D,$8C,$8D,$8C
 .byte $9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$78,$B0,$B1,$79,$9C,$9D,$9C,$9D,$9C,$9D,$78,$B0,$B1,$79,$9C,$9D,$9C,$9D,$9C,$9D,$9C
 .byte $8C,$8D,$8C,$8D,$8C,$68,$66,$67,$66,$67,$66,$67,$A0,$A1,$69,$8C,$8D,$8C,$8D,$8C,$8D,$68,$A0,$A1,$69,$8C,$8D,$8C,$8D,$8C,$8D,$8C
-.byte $9C,$9D,$9C,$9D,$9C,$78,$76,$77,$76,$77,$76,$77,$B0,$B1,$79,$9C,$9D,$9C,$9D,$9C,$9D,$78,$B0,$B1,$79,$9C,$9D,$9C,$9D,$9C,$9D,$9C ;
+.byte $9C,$9D,$9C,$9D,$9C,$78,$76,$77,$76,$77,$76,$77,$B0,$B1,$79,$9C,$9D,$9C,$9D,$9C,$9D,$78,$B0,$B1,$79,$9C,$9D,$9C,$9D,$9C,$9D,$9C 
 .byte $8C,$8D,$8C,$8D,$8C,$68,$A0,$A1,$A0,$A1,$A0,$A1,$A0,$A1,$69,$8C,$8D,$8C,$8D,$8C,$8D,$68,$A0,$A1,$69,$8C,$8D,$8C,$8D,$8C,$8D,$8C
 .byte $9C,$9D,$9C,$9D,$9C,$78,$B0,$B1,$B0,$B1,$B0,$B1,$B0,$B1,$79,$9C,$9D,$9C,$9D,$9C,$9D,$78,$B0,$B1,$79,$9C,$9D,$9C,$9D,$9C,$9D,$9C
 .byte $8C,$8D,$8C,$8D,$8C,$68,$A0,$A1,$6A,$6B,$6A,$6B,$6A,$6B,$69,$8C,$8D,$8C,$8D,$8C,$8D,$68,$A0,$A1,$69,$8C,$8D,$8C,$8D,$8C,$8D,$8C
@@ -329,11 +374,11 @@ background:
 .byte $8C,$8D,$8C,$8D,$8C,$68,$A0,$A1,$69,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$68,$A0,$A1,$69,$8C,$8D,$8C,$8D,$8C,$8D,$8C
 .byte $9C,$9D,$9C,$9D,$9C,$78,$B0,$B1,$79,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$78,$B0,$B1,$79,$9C,$9D,$9C,$9D,$9C,$9D,$9C
 .byte $66,$67,$66,$67,$66,$67,$A0,$A1,$69,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$68,$A0,$A1,$69,$8C,$8D,$8C,$8D,$8C,$8D,$8C
-.byte $76,$77,$76,$77,$76,$77,$B0,$B1,$79,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$78,$B0,$B1,$79,$9C,$9D,$9C,$9D,$9C,$9D,$9C ;
+.byte $76,$77,$76,$77,$76,$77,$B0,$B1,$79,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$78,$B0,$B1,$79,$9C,$9D,$9C,$9D,$9C,$9D,$9C 
 .byte $A0,$A1,$A0,$A1,$A0,$A1,$A0,$A1,$69,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$68,$A0,$A1,$69,$8C,$8D,$8C,$8D,$8C,$8D,$8C
 .byte $B0,$B1,$B0,$B1,$B0,$B1,$B0,$B1,$79,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$78,$B0,$B1,$79,$9C,$9D,$9C,$9D,$9C,$9D,$9C
 .byte $6A,$6B,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$68,$A0,$A1,$69,$8C,$8D,$8C,$8D,$8C,$8D,$8C
-.byte $7A,$7B,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$78,$B0,$B1,$79,$9C,$9D,$9C,$9D,$9C,$9D,$9C ;
+.byte $7A,$7B,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$78,$B0,$B1,$79,$9C,$9D,$9C,$9D,$9C,$9D,$9C 
 ; Each byte of attribute table covers four quadrants, pack four quadrants into a singe byte 
 ; EX. 00(bottom right) 00(bottom left) 00(top right) 00(top left)
 ; EX 1. 01 10 00 11 -> 0110 0011 -> $63 
