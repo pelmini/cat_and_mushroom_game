@@ -87,7 +87,9 @@ sprite_x:
 .byte $7F
 sprite_y:
 .byte$7F
-run:
+x_velocity:
+.byte 0
+y_velocity:
 .byte 0
 ; code ROM segment
 ; all code and on-ROM program data goes here
@@ -219,17 +221,31 @@ forever:
 ;
 ; We only care about the 0 bit because that's where D0, the standard
 ; controller, reports in
+; bitmasking - putting zeros except where you care about, literally erases part you dont care about (do more reading on can, will haunt you for life)
   lda CONTROLLER_1_PORT ; A
   lda CONTROLLER_1_PORT ; B
   lda CONTROLLER_1_PORT ; Select
   lda CONTROLLER_1_PORT ; Start
+  ; To move up have y_velocity be positive
   lda CONTROLLER_1_PORT ; U
+  and #CONTROLLER_D0_BIT
+  sta y_velocity
+  ;jmp main_loop_done
   lda CONTROLLER_1_PORT ; D
+  ; To move left have x_velocity be a negative number by storing it as a value of FF. By adding FF to 1 it will cause run to be a n-1 value
   lda CONTROLLER_1_PORT ; L
+  and #CONTROLLER_D0_BIT
+  cmp #1
+  bne l_done
+  lda #$FF
+  sta x_velocity
+  jmp main_loop_done
+l_done: 
   lda CONTROLLER_1_PORT ; R
   and #CONTROLLER_D0_BIT
-; A value of 0 means the button is pressed
-  sta run
+  ; run can only be a 0 or 1
+  sta x_velocity
+main_loop_done:
   jmp forever
 
 nmi:
@@ -253,15 +269,22 @@ nmi:
 dont_cycle_anim:
     sta current_frame
 
-  lda run
-  cmp #0
-  beq done
-
-  lda sprite_x
+  ; if run is 1 we load sprite y
+  lda sprite_y
+  ; CLC - clears the carry flag; needed for basic maths
   clc
-  adc #1
-  sta sprite_x
-dont_reset_x:
+  ; add with carry a one
+  adc y_velocity
+  ; store in sprite x
+  sta sprite_y
+
+  ; if run is 1 we load sprite x
+  lda sprite_x
+  ; CLC - clears the carry flag; needed for basic maths 
+  clc
+  ; add with carry a one
+  adc x_velocity
+  ; store in sprite x
   sta sprite_x
 done:
   jsr load_sprite
