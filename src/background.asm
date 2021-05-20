@@ -253,6 +253,10 @@ nmi:
 dont_cycle_anim:
     sta current_frame
 
+  lda run
+  cmp #0
+  beq done
+
   lda sprite_x
   clc
   adc #1
@@ -262,10 +266,6 @@ dont_reset_x:
 done:
   jsr load_sprite
   rti
-
-  lda run
-  cmp #0
-  beq done
 
 ; load_sprite consults current_frame to determine the offset into anim
 ; and then draws the data in that row of anim into a 2x2 square
