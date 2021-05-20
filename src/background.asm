@@ -50,13 +50,19 @@
 .define BGPALETTE_HI   $3F
 .define BGPALETTE_LO   $00
 
-.segment "ZEROPAGE"
-nametable_ptr_lo:
-.byte $00
-nametable_ptr_hi:
-.byte $00
-frame_counter:
-.byte $00
+; On write: DMC enable, length counter enable
+; On read: DMC interrupt, frame interrupt, length counter status
+.define DMC_LEN_CNT_CTRL_STA $4015
+
+; Frame counter mode (4 or 5 frame), frame counter interrupt enable/disable
+.define FRAME_CNT_MODE_INT $4017
+
+; Controller 1
+.define CONTROLLER_1_PORT $4016
+.define CONTROLLER_2_PORT $4017
+.define CONTROLLER_STROBE $01
+.define CONTROLLER_LATCH  $00
+.define CONTROLLER_D0_BIT $01
 
 .segment "HEADER"
 
@@ -68,6 +74,21 @@ frame_counter:
                  ;
                  ; Note the header is 16 bytes but the nes.cfg will zero-pad for us.
 
+.segment "ZEROPAGE"
+nametable_ptr_lo:
+.byte $00
+nametable_ptr_hi:
+.byte $00
+frame_counter:
+.byte $00
+current_frame:
+.byte 0
+sprite_x:
+.byte $7F
+sprite_y:
+.byte$7F
+run:
+.byte 0
 ; code ROM segment
 ; all code and on-ROM program data goes here
 
@@ -91,7 +112,6 @@ vwait2:
   ; it's a neat little thing to mention here
 
   bit PPUSTATUS
-
 
   ; load all the palettes
   lda #BGPALETTE_HI
@@ -168,35 +188,18 @@ zero_oam:
 ; refresh our index register...we're going to make heavy use of it
 ; now...
   ldx #0
-
-; head
-  lda #$7F             ; Y coordinate
-  sta SPRITE_PAGE, X
-  inx
-  lda #$36             ; Pattern bank 0, tile A0 (A1 is bottom)
-  sta SPRITE_PAGE, X
-  inx
-  lda #$00             ; No flipping, in front of background, palette 0  
-  sta SPRITE_PAGE, X
-  inx
-  lda #$7F             ; X coordinate
-  sta SPRITE_PAGE, X
-  inx
-  lda #$7F             ; Y coordinate
-  sta SPRITE_PAGE, X
-  inx
-
-; OAM DMA must always be a transfer from address XX00-XXFF, so we write
-; the value of XX (in this case, 2) to OAM_DMA ($4014) to trigger the
-; transfer
-  lda #OAM_PAGE
-  sta OAM_DMA 
+  sta current_frame
+  lda #0
+  sta frame_counter
+; Load the sprite
+  jsr load_sprite
 
 ; Enable background and sprite rendering.  This is suuuuuper important to
 ; remember.  I didn't remember to put this in and probably blew a whole day
 ; trying to figure out why my emulator hated me.
   lda #$1e
   sta PPUMASK
+
 
 ; generate NMI - Non-maskable interrupt
 ; Set at 80 to generate NMI
@@ -206,12 +209,114 @@ zero_oam:
   sta PPUCTRL
 
 forever:
-; infinite loop when there is nothing to compute 
-; Needed for flow control, until the next nmi is ready
-; will recieve signal from ppu to get out of loop 
+; read the controller state
+  lda #CONTROLLER_STROBE
+  sta CONTROLLER_1_PORT
+  lda #CONTROLLER_LATCH
+  sta CONTROLLER_1_PORT
+; The controller state is latched, the bits will report in in this
+; order on subsequent reads: A, B, Select, Start, U, D, L, R
+;
+; We only care about the 0 bit because that's where D0, the standard
+; controller, reports in
+  lda CONTROLLER_1_PORT ; A
+  lda CONTROLLER_1_PORT ; B
+  lda CONTROLLER_1_PORT ; Select
+  lda CONTROLLER_1_PORT ; Start
+  lda CONTROLLER_1_PORT ; U
+  lda CONTROLLER_1_PORT ; D
+  lda CONTROLLER_1_PORT ; L
+  lda CONTROLLER_1_PORT ; R
+  and #CONTROLLER_D0_BIT
+; A value of 0 means the button is pressed
+  sta run
   jmp forever
 
 nmi:
+  lda #OAM_PAGE
+  sta OAM_DMA
+ 
+  inc frame_counter
+  lda frame_counter
+  cmp #3
+  bne done
+  lda #0
+  sta frame_counter
+
+  lda current_frame
+  clc
+  adc #0
+  ;adc #6 Commneted out because it takes 6 frames for a perosn to walk, each 
+  cmp #24
+  bne dont_cycle_anim
+  lda #0 
+dont_cycle_anim:
+    sta current_frame
+
+  lda sprite_x
+  clc
+  adc #1
+  sta sprite_x
+dont_reset_x:
+  sta sprite_x
+done:
+  jsr load_sprite
+  rti
+
+  lda run
+  cmp #0
+  beq done
+
+; load_sprite consults current_frame to determine the offset into anim
+; and then draws the data in that row of anim into a 2x2 square
+.proc load_sprite
+  ldx #0
+  ldy current_frame
+  lda #$7F
+  sta sprite_y
+load_loop:
+; First of two cells
+  lda sprite_y
+  sta SPRITE_PAGE, X
+  inx
+  lda anim, Y
+  iny
+  sta SPRITE_PAGE, X
+  inx
+  lda #$00
+  sta SPRITE_PAGE, X
+  inx
+  lda sprite_x
+  sta SPRITE_PAGE, X
+  clc
+  adc #8             ; move to right cell
+  sta sprite_x
+  inx
+; Second of two cells
+  lda sprite_y
+  sta SPRITE_PAGE, X
+  clc
+  adc #8 ; change y coordinates of sprite
+  sta sprite_y 
+  inx
+  lda anim, Y
+  iny
+  sta SPRITE_PAGE, X
+  inx
+  lda #$00
+  sta SPRITE_PAGE, X
+  inx
+  lda sprite_x
+  sta SPRITE_PAGE, X
+  sec
+  sbc #8              ; return to the left cell
+  sta sprite_x
+  inx
+;; Loop if we haven't loaded the full sprite
+  cpx #16
+  bne load_loop
+  rts
+.endproc
   rti ; JUST DID TO PUT PAUSE ON ROTATE PALETTE UNTIL SHROOM HAS BEEN MADE!!!!!!!!
   ; dec - reducing the value by one 
   dec frame_counter
@@ -225,7 +330,7 @@ rotate_palette:
   rti ; Return from the NMI (NTSC refresh interrupt)
 
 bgpalette:
-  .byte $1f, $20, $1f, $16 ; palette 0, first byte is universal background
+  .byte $1f, $00, $00, $00 ; palette 0, first byte is universal background
   .byte $1f, $20, $1f, $19 ; palette 1, first byte is not used
   .byte $1f, $38, $00, $1a ; palette 2, first byte is not used
   .byte $1f, $20, $1f, $16 ; palette 3, first byte is not used
@@ -236,6 +341,11 @@ spritepalette:
   .byte $1F, $07, $19, $20 ; palette 2, first byte is not used
   .byte $1F, $07, $19, $20 ; palette 3, first byte is not used
 
+anim:
+  .byte $86, $87, $96, $97  ; Cat
+;  .byte $96, $97  ;  
+;  .byte $A4, $A5, $B4, $B5, $C4, $C5 ; frame 3
+;  .byte $A6, $A7, $B6, $B7, $C6, $C7 ; frame 4
 
 ; vectors declaration
 .segment "VECTORS"
