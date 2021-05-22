@@ -84,9 +84,9 @@ frame_counter:
 current_frame:
 .byte 0
 sprite_x:
-.byte $7F
+.byte $00
 sprite_y:
-.byte$7F
+.byte $00
 x_velocity:
 .byte 0
 y_velocity:
@@ -105,6 +105,12 @@ vwait1:
 vwait2:
   bit PPUSTATUS
   bpl vwait2     ; at this point, about 57165 cycles have passed
+
+  ; Set default values for sprite coords
+  lda #$7F
+  sta sprite_x
+  lda #$7F
+  sta sprite_y
 
   ; Interesting little fact I learned along the way.  Because it takes two
   ; stores on PPUADDR to move its pointer, it's good practice to start all of
@@ -295,8 +301,6 @@ done:
 .proc load_sprite
   ldx #0
   ldy current_frame
-  lda #$7F
-  sta sprite_y
 load_loop:
 ; First of two cells
   lda sprite_y
@@ -338,6 +342,11 @@ load_loop:
 ;; Loop if we haven't loaded the full sprite
   cpx #16
   bne load_loop
+;; Return sprite_y to the origin
+  lda sprite_y
+  sec
+  sbc #16
+  sta sprite_y
   rts
 .endproc
   rti ; JUST DID TO PUT PAUSE ON ROTATE PALETTE UNTIL SHROOM HAS BEEN MADE!!!!!!!!
