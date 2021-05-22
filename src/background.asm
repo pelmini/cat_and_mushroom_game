@@ -232,13 +232,21 @@ forever:
   lda CONTROLLER_1_PORT ; B
   lda CONTROLLER_1_PORT ; Select
   lda CONTROLLER_1_PORT ; Start
-  ; To move up have y_velocity be positive
+  ; To move up have y_velocity has to be negative
   lda CONTROLLER_1_PORT ; U
   and #CONTROLLER_D0_BIT
+  cmp #1
+  bne d_done
+  lda #$FF
   sta y_velocity
+  jmp main_loop_done
+d_done:
   ;jmp main_loop_done
   lda CONTROLLER_1_PORT ; D
-  ; To move left have x_velocity be a negative number by storing it as a value of FF. By adding FF to 1 it will cause run to be a n-1 value
+  and #CONTROLLER_D0_BIT
+  ; run can only be a 0 or 1
+  sta y_velocity
+; To move left have x_velocity be a negative number by storing it as a value of FF. By adding FF to 1 it will cause run to be a n-1 value
   lda CONTROLLER_1_PORT ; L
   and #CONTROLLER_D0_BIT
   cmp #1
