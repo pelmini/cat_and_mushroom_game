@@ -176,14 +176,14 @@ nt_finished:
   sta PPUADDR
   lda #ATTRTABLE_0_LO
   sta PPUADDR
-  ldx #0 ; 64 tiles in the attribute table
+;  ldx #0 ; 64 tiles in the attribute table
 
-attrloop:
-  lda attribute, X ; loads attribute[x] into accumulator 
-  sta PPUDATA
-  inx ; incremnet x (by one)
-  cpx #64 ; comparing x to 64
-  bne attrloop
+;;attrloop:
+;  lda attribute, X ; loads attribute[x] into accumulator 
+;  sta PPUDATA
+;  inx ; incremnet x (by one)
+;  cpx #64 ; comparing x to 64
+;  bne attrloop
 
 ; zero out the OAM DMA shadow page
   ldx #$FF
@@ -371,13 +371,13 @@ rotate_palette:
 
 bgpalette:
   .byte $1f, $00, $00, $00 ; palette 0, first byte is universal background
-  .byte $1f, $20, $1f, $19 ; palette 1, first byte is not used
+  .byte $1f, $01, $11, $3b ; palette 1, first byte is not used
   .byte $1f, $38, $00, $1a ; palette 2, first byte is not used
-  .byte $1f, $20, $1f, $16 ; palette 3, first byte is not used
+  .byte $1f, $20, $2d, $1a ; palette 3, first byte is not used
   
 spritepalette:
   .byte $1F, $20, $1f, $16 ; palette 0, first byte is not used
-  .byte $1F, $07, $19, $20 ; palette 1, first byte is not used
+  .byte $1F, $01, $11, $3b ; palette 1, first byte is not used
   .byte $1F, $07, $19, $20 ; palette 2, first byte is not used
   .byte $1F, $07, $19, $20 ; palette 3, first byte is not used
 
@@ -398,51 +398,20 @@ anim:
 ; Note the use of .incbin so I can just import a binary file.  Neato!
 .segment "RODATA"
 background:
-.byte $8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$68,$A1,$A0,$69,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D
-.byte $9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$78,$B0,$B1,$79,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D
-.byte $8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$68,$A1,$A0,$69,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D
-.byte $9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$78,$B0,$B1,$79,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D 
-.byte $8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$68,$A1,$A0,$69,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D
-.byte $9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$78,$B0,$B1,$79,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D
-.byte $8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$68,$A1,$A0,$69,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D
-.byte $9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$78,$B0,$B1,$79,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D 
-.byte $8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$68,$A1,$A0,$69,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D
-.byte $9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$78,$B0,$B1,$79,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D
-.byte $8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$68,$66,$67,$66,$67,$66,$A1,$A0,$67,$66,$67,$66,$67,$66,$67,$66,$67,$66,$67,$66,$67
-.byte $9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$78,$76,$77,$76,$77,$76,$B0,$B1,$77,$76,$77,$76,$77,$76,$77,$76,$77,$76,$77,$76,$77 
-.byte $8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$68,$A0,$A1,$A0,$A1,$A0,$A1,$A0,$A1,$A0,$A1,$A0,$A1,$A0,$A1,$A0,$A1,$A0,$A1,$A0,$A1
-.byte $9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$78,$B0,$B1,$B0,$B1,$B0,$B1,$B0,$B1,$B0,$B1,$B0,$B1,$B0,$B1,$B0,$B1,$B0,$B1,$B0,$B1
-.byte $8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$68,$A0,$A1,$6A,$6B,$6A,$6B,$6A,$6B,$6A,$6B,$A0,$A1,$6A,$6B,$6A,$6B,$6A,$6B,$6A,$6B
-.byte $9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$78,$B0,$B1,$7A,$7B,$7A,$7B,$7A,$7B,$7A,$7B,$B0,$B1,$7A,$7B,$7A,$7B,$7A,$7B,$7A,$7B 
-.byte $8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$68,$A0,$A1,$69,$8C,$8D,$8C,$8D,$8C,$8D,$68,$A0,$A1,$69,$8C,$8D,$8C,$8D,$8C,$8D,$8C
-.byte $9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$78,$B0,$B1,$79,$9C,$9D,$9C,$9D,$9C,$9D,$78,$B0,$B1,$79,$9C,$9D,$9C,$9D,$9C,$9D,$9C
-.byte $8C,$8D,$8C,$8D,$8C,$68,$66,$67,$66,$67,$66,$67,$A0,$A1,$69,$8C,$8D,$8C,$8D,$8C,$8D,$68,$A0,$A1,$69,$8C,$8D,$8C,$8D,$8C,$8D,$8C
-.byte $9C,$9D,$9C,$9D,$9C,$78,$76,$77,$76,$77,$76,$77,$B0,$B1,$79,$9C,$9D,$9C,$9D,$9C,$9D,$78,$B0,$B1,$79,$9C,$9D,$9C,$9D,$9C,$9D,$9C 
-.byte $8C,$8D,$8C,$8D,$8C,$68,$A0,$A1,$A0,$A1,$A0,$A1,$A0,$A1,$69,$8C,$8D,$8C,$8D,$8C,$8D,$68,$A0,$A1,$69,$8C,$8D,$8C,$8D,$8C,$8D,$8C
-.byte $9C,$9D,$9C,$9D,$9C,$78,$B0,$B1,$B0,$B1,$B0,$B1,$B0,$B1,$79,$9C,$9D,$9C,$9D,$9C,$9D,$78,$B0,$B1,$79,$9C,$9D,$9C,$9D,$9C,$9D,$9C
-.byte $8C,$8D,$8C,$8D,$8C,$68,$A0,$A1,$6A,$6B,$6A,$6B,$6A,$6B,$69,$8C,$8D,$8C,$8D,$8C,$8D,$68,$A0,$A1,$69,$8C,$8D,$8C,$8D,$8C,$8D,$8C
-.byte $9C,$9D,$9C,$9D,$9C,$78,$B0,$B1,$7A,$7B,$7A,$7B,$7A,$7B,$79,$9C,$9D,$9C,$9D,$9C,$9D,$78,$B0,$B1,$79,$9C,$9D,$9C,$9D,$9C,$9D,$9C
-.byte $8C,$8D,$8C,$8D,$8C,$68,$A0,$A1,$69,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$68,$A0,$A1,$69,$8C,$8D,$8C,$8D,$8C,$8D,$8C
-.byte $9C,$9D,$9C,$9D,$9C,$78,$B0,$B1,$79,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$78,$B0,$B1,$79,$9C,$9D,$9C,$9D,$9C,$9D,$9C
-.byte $66,$67,$66,$67,$66,$67,$A0,$A1,$69,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$68,$A0,$A1,$69,$8C,$8D,$8C,$8D,$8C,$8D,$8C
-.byte $76,$77,$76,$77,$76,$77,$B0,$B1,$79,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$78,$B0,$B1,$79,$9C,$9D,$9C,$9D,$9C,$9D,$9C 
-.byte $A0,$A1,$A0,$A1,$A0,$A1,$A0,$A1,$69,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$68,$A0,$A1,$69,$8C,$8D,$8C,$8D,$8C,$8D,$8C
-.byte $B0,$B1,$B0,$B1,$B0,$B1,$B0,$B1,$79,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$78,$B0,$B1,$79,$9C,$9D,$9C,$9D,$9C,$9D,$9C
-.byte $6A,$6B,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$8C,$8D,$68,$A0,$A1,$69,$8C,$8D,$8C,$8D,$8C,$8D,$8C
-.byte $7A,$7B,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$9C,$9D,$78,$B0,$B1,$79,$9C,$9D,$9C,$9D,$9C,$9D,$9C 
-; Each byte of attribute table covers four quadrants, pack four quadrants into a singe byte 
+.incbin "cat_and_mushroom_bkgrd.nam"
 ; EX. 00(bottom right) 00(bottom left) 00(top right) 00(top left)
 ; EX 1. 01 10 00 11 -> 0110 0011 -> $63 
 ; 10100110 -> A6
 ; palette 0 (00), palette 1 (01), palette 2 (10), or palette 3 (11) 
-attribute:
-.byte $AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA
-.byte $AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA
-.byte $AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA
-.byte $AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA
-.byte $AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA
-.byte $AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA
-.byte $AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA
-.byte $AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA
+;attribute:
+;.incbin "background.nam"
+;;.byte $AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA
+;;.byte $AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA
+;;.byte $AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA
+;;.byte $AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA
+;;.byte $AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA
+;;.byte $AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA
+;;.byte $AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA
+;;.byte $AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA
 .segment "CHARS"
 .incbin "cat_and_mushroom.sav"
