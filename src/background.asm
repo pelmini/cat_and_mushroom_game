@@ -81,8 +81,6 @@ nametable_ptr_hi:
 .byte $00
 frame_counter:
 .byte $00
-current_frame:
-.byte 0
 sprite_x:
 .byte $00
 sprite_y:
@@ -187,8 +185,6 @@ zero_oam:
 
 ; refresh our index register...we're going to make heavy use of it
 ; now...
-  ldx #0
-  sta current_frame
   lda #0
   sta frame_counter
 ; Load the sprite
@@ -265,16 +261,6 @@ nmi:
   lda #0
   sta frame_counter
 
-  lda current_frame
-  clc
-  adc #0
-  ;adc #6 Commneted out because it takes 6 frames for a perosn to walk, each 
-  cmp #24
-  bne dont_cycle_anim
-  lda #0 
-dont_cycle_anim:
-    sta current_frame
-
   ; if run is 1 we load sprite y
   lda sprite_y
   ; CLC - clears the carry flag; needed for basic maths
@@ -300,7 +286,7 @@ done:
 ; and then draws the data in that row of anim into a 2x2 square
 .proc load_sprite
   ldx #0
-  ldy current_frame
+  ldy #0
 load_loop:
 ; First of two cells
   lda sprite_y
