@@ -176,14 +176,6 @@ nt_finished:
   sta PPUADDR
   lda #ATTRTABLE_0_LO
   sta PPUADDR
-;  ldx #0 ; 64 tiles in the attribute table
-
-;;attrloop:
-;  lda attribute, X ; loads attribute[x] into accumulator 
-;  sta PPUDATA
-;  inx ; incremnet x (by one)
-;  cpx #64 ; comparing x to 64
-;  bne attrloop
 
 ; zero out the OAM DMA shadow page
   ldx #$FF
@@ -399,19 +391,6 @@ anim:
 .segment "RODATA"
 background:
 .incbin "cat_and_mushroom_bkgrd.nam"
-; EX. 00(bottom right) 00(bottom left) 00(top right) 00(top left)
-; EX 1. 01 10 00 11 -> 0110 0011 -> $63 
-; 10100110 -> A6
-; palette 0 (00), palette 1 (01), palette 2 (10), or palette 3 (11) 
-;attribute:
-;.incbin "background.nam"
-;;.byte $AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA
-;;.byte $AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA
-;;.byte $AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA
-;;.byte $AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA
-;;.byte $AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA
-;;.byte $AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA
-;;.byte $AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA
-;;.byte $AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA
+
 .segment "CHARS"
 .incbin "cat_and_mushroom.sav"
