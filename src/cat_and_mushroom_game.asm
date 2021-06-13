@@ -1,35 +1,16 @@
-; Nametables and attribute tables Demo for NES
-; Following on from the background palette program, this program looks at how
-; to load a pattern table, which contains the actual graphic tiles, a nametable,
-; which contains the layout of graphic tiles for the background, and the
-; attribute table, which specifies what palette to paint everything with.
+; Cat and Mushroom game for NES
+; This game was able to be made based on a NES coding exploration developed
+; by Rhett Aultman (Thanks Rhett!) https://github.com/roadriverrail/nes_coding.
 ;
 ; I am not an artist, and even then, converting bitmaps to pattern tables can be
 ; a chore.  So, I used the "Generitiles" from the NESDev wiki
 ; (https://wiki.nesdev.com/w/index.php/Placeholder_graphics).  I then ran these
 ; through a Python script supplied by Damian Yerrick 
 ; (https://github.com/pinobatch/nesbgeditor) which converts a 2-bit PNG into
-; pattern tables pretty darn effectively.  Thanks, Damian!
-; 
-; So, we're now *finally* using the CHARS section, which gets directly mapped
-; into the PPU's memory at power on.  This section really should more
-; be named "CHR-ROM", as this is the more common name for it.  You'll notice
-; that I can directly include the file produced by Damian's tools, which keeps
-; the code tidy.
-;
-; With the patterns directly mapped in, the next step is to load up some data
-; in the name table.  Since we're not doing anything fancy, I've restricted
-; things to the first of the two name tables.  Much like we did for loading the
-; palette colors, we load this through the use of PPUADDR and PPUDATA.
-;
-; Finally, we load the attribute table, which says which palette to use for
-; each 32x32 pixel region on the screen.  In a more advanced demo, this would
-; raise the number of effective colors I was using on the screen.  For now,
-; though, I just want to keep things simple and easy-to-explain.
-;
-; Note that the annyoing "hello world" sound is now gone.  The graphics show
-; that everything is working.
+; pattern tables pretty darn effectively.  Thanks, Damian! NES tile sets used
+; for the background were obtained from https://chasersgaming.itch.io/. 
 
+; Set up for NES 
 .define SPRITE_PAGE  $0200
 
 .define PPUCTRL      $2000
@@ -89,8 +70,6 @@ x_velocity:
 .byte 0
 y_velocity:
 .byte 0
-; code ROM segment
-; all code and on-ROM program data goes here
 
 .segment "STARTUP"
 
@@ -116,7 +95,6 @@ vwait2:
   ; and ensures you're addressing the address you expect.
   ; Technically, we don't need this because we did it in the reset code, but
   ; it's a neat little thing to mention here
-
   bit PPUSTATUS
 
   ; load all the palettes
@@ -146,7 +124,6 @@ paletteloop:
 ; me easily show you some simple graphics that are made up of multiple
 ; stacked tiles without getting too fancy.  In reality, you'd probably have
 ; complete nametables that you'd load in from files and simply run in a loop.
-
 ; prep the loop
   ldx #4
   ldy #0
@@ -191,7 +168,7 @@ zero_oam:
   jsr load_sprite
 
 ; Enable background and sprite rendering.  This is suuuuuper important to
-; remember.  I didn't remember to put this in and probably blew a whole day
+; remember. I didn't remember to put this in and probably blew a whole day
 ; trying to figure out why my emulator hated me.
   lda #$1e
   sta PPUMASK
@@ -212,7 +189,6 @@ forever:
   sta CONTROLLER_1_PORT
 ; The controller state is latched, the bits will report in in this
 ; order on subsequent reads: A, B, Select, Start, U, D, L, R
-;
 ; We only care about the 0 bit because that's where D0, the standard
 ; controller, reports in
 ; bitmasking - putting zeros except where you care about, literally erases part you dont care about (do more reading on can, will haunt you for life)
