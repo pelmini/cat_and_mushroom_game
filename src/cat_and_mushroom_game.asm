@@ -160,6 +160,51 @@ zero_oam:
   dex
   bne zero_oam
 
+load_mushroom:
+  ldx #16
+  lda #$04
+  inx
+  sta SPRITE_PAGE,X
+  lda #$8E
+  sta SPRITE_PAGE,X
+  lda #$00
+  sta SPRITE_PAGE,X
+  lda #$04
+  sta SPRITE_PAGE,X
+  inx
+  ldx #16
+  lda #$06
+  inx
+  sta SPRITE_PAGE,X
+  lda #$8F
+  sta SPRITE_PAGE,X
+  lda #$00
+  sta SPRITE_PAGE,X
+  lda #$04
+  sta SPRITE_PAGE,X
+  inx
+  ldx #16
+  lda #$04
+  inx
+  sta SPRITE_PAGE,X
+  lda #$9E
+  sta SPRITE_PAGE,X
+  lda #$00
+  sta SPRITE_PAGE,X
+  lda #$05
+  sta SPRITE_PAGE,X
+  inx
+  ldx #16
+  lda #$05
+  inx
+  sta SPRITE_PAGE,X
+  lda #$9F
+  sta SPRITE_PAGE,X
+  lda #$00
+  sta SPRITE_PAGE,X
+  lda #$05
+  sta SPRITE_PAGE,X
+  inx
 ; refresh our index register...we're going to make heavy use of it
 ; now...
   lda #0
@@ -181,6 +226,9 @@ zero_oam:
   lda #$80
   sta PPUCTRL
 
+  lda SPRITE_PAGE
+  adc #16
+  sta SPRITE_PAGE
 forever:
 ; read the controller state
   lda #CONTROLLER_STROBE
