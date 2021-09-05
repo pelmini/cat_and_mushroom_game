@@ -70,7 +70,24 @@ x_velocity:
 .byte 0
 y_velocity:
 .byte 0
-
+cat_sprite_collider_top:
+.byte $00
+cat_sprite_collider_left:
+.byte $00
+cat_sprite_collider_width:
+.byte $00
+cat_sprite_collider_height:
+.byte $00
+mushroom_sprite_collider_top:
+.byte $00
+mushroom_sprite_collider_left:
+.byte $00
+mushroom_sprite_collider_width:
+.byte $00
+mushroom_sprite_collider_height:
+.byte $00
+collision_result:
+.byte $00 ; 0 - no collision, 1 - collision
 .segment "STARTUP"
 
 ; reset vector
@@ -324,10 +341,10 @@ load_loop:
 
 .proc load_mushroom
   ldx #16
-  lda #32
+  lda #64  ; moves mushroom
   sta SPRITE_PAGE,X
   inx
-  lda #$8E
+  lda #$AE
   sta SPRITE_PAGE,X
   inx
   lda #$00
@@ -336,10 +353,10 @@ load_loop:
   lda #64
   sta SPRITE_PAGE,X
   inx
-  lda #32
+  lda #64 ; moves mushroom
   sta SPRITE_PAGE,X
   inx
-  lda #$8F
+  lda #$AF
   sta SPRITE_PAGE,X
   inx
   lda #$00
@@ -348,10 +365,10 @@ load_loop:
   lda #72
   sta SPRITE_PAGE,X
   inx
-  lda #40
+  lda #72 ; move mushroom
   sta SPRITE_PAGE,X
   inx
-  lda #$9E
+  lda #$BE
   sta SPRITE_PAGE,X
   inx
   lda #$00
@@ -360,10 +377,10 @@ load_loop:
   lda #64
   sta SPRITE_PAGE,X
   inx
-  lda #40
+  lda #72 ; moves mushroom
   sta SPRITE_PAGE,X
   inx
-  lda #$9F
+  lda #$BF
   sta SPRITE_PAGE,X
   inx
   lda #$00
@@ -373,6 +390,37 @@ load_loop:
   sta SPRITE_PAGE,X
   inx
   rts
+.endproc
+
+.proc sprite_collison 
+  lda #$00
+  sta collision_result ; initalizing collision result to 0 (no collision)
+  clc 
+  lda cat_sprite_collider_left ; load A with cat (x1)
+  adc cat_sprite_collider_width ; add width to x1 
+  cmp mushroom_sprite_collider_left ; compare x2 with A 
+  bmi collision_check ; if greater then skip the rest of if statment and return 0
+  
+  clc ; clear carry flag
+  lda mushroom_sprite_collider_left ; load a with mushroom (x2)
+  adc mushroom_sprite_collider_width ; add width to x2
+  cmp cat_sprite_collider_left ; compare with left of cat 
+  bmi collision_check ; if less then skip the rest and return 0
+
+  clc ; clear carry flag
+  lda cat_sprite_collider_top ; load a with cat (y1)
+  adc cat_sprite_collider_height ; add height to x1
+  cmp mushroom_sprite_collider_top ; compare with top of mushroom
+  bmi collision_check ; if less then skip the rest and return 0
+
+  clc ; clear carry flag
+  lda mushroom_sprite_collider_top ; load a with mushroom (x2)
+  adc mushroom_sprite_collider_height ; add hright to x2
+  cmp cat_sprite_collider_top ; compare with top of cat
+  bmi collision_check ; if less then skip the rest and return 0 
+
+  lda #$01 ; if there is a collision set result to 1
+  sta collision_result 
 .endproc
 
 rotate_palette:
@@ -390,6 +438,8 @@ spritepalette:
   .byte $1F, $07, $19, $20 ; palette 2, first byte is not used
   .byte $1F, $07, $19, $20 ; palette 3, first byte is not used
 
+collision_check:
+   pla ; restore current a register
 anim:
   .byte $86, $87, $96, $97  ; Cat
 ;  .byte $96, $97  ;  
