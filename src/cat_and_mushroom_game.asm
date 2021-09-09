@@ -332,12 +332,12 @@ load_loop:
 .endproc
   rti ; JUST DID TO PUT PAUSE ON ROTATE PALETTE UNTIL SHROOM HAS BEEN MADE!!!!!!!!
   ; dec - reducing the value by one 
-  dec frame_counter
+  ; dec frame_counter
   ; bmi - branch if minus 
   ; if frame counter is less than zero then do rotate_palette
-  bmi rotate_palette
+  ; bmi rotate_palette
   ; return from interrupt - end rotate code and go back to idle loop
-  rti
+  ; rti
 
 .proc load_mushroom
   ldx #16
@@ -420,11 +420,51 @@ load_loop:
   bmi collision_check ; if less then skip the rest and return 0 
 
   lda #$01 ; if there is a collision set result to 1
-  sta collision_result 
+  sta collision_result
 .endproc
 
-rotate_palette:
-  rti ; Return from the NMI (NTSC refresh interrupt)
+.proc erase_mushroom
+  ldx #16
+  lda #00
+  sta SPRITE_PAGE, X
+  inx 
+  sta SPRITE_PAGE, X
+  inx
+  sta SPRITE_PAGE, X
+  inx
+  sta SPRITE_PAGE, X
+  inx
+  sta SPRITE_PAGE, X
+  inx
+  sta SPRITE_PAGE, X
+  inx
+  sta SPRITE_PAGE, X
+  inx
+  sta SPRITE_PAGE, X
+  inx
+  sta SPRITE_PAGE, X
+  inx
+  sta SPRITE_PAGE, X
+  inx
+  sta SPRITE_PAGE, X
+  inx
+  sta SPRITE_PAGE, X
+  inx
+  sta SPRITE_PAGE, X
+  inx
+  sta SPRITE_PAGE, X
+  inx
+  sta SPRITE_PAGE, X
+  inx
+  sta SPRITE_PAGE, X
+  inx
+  rts
+.endproc
+
+;rotate_palette:
+  ;rti ; Return from the NMI (NTSC refresh interrupt)
+collision_check:
+   pla ; restore current a register
 
 bgpalette:
   .byte $1f, $00, $00, $00 ; palette 0, first byte is universal background
@@ -438,8 +478,6 @@ spritepalette:
   .byte $1F, $07, $19, $20 ; palette 2, first byte is not used
   .byte $1F, $07, $19, $20 ; palette 3, first byte is not used
 
-collision_check:
-   pla ; restore current a register
 anim:
   .byte $86, $87, $96, $97  ; Cat
 ;  .byte $96, $97  ;  
